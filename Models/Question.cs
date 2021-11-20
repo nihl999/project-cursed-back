@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 
+
 namespace project_cursed.Models
 {
     public class Question
@@ -20,7 +21,7 @@ namespace project_cursed.Models
         public string Text { get; set; }
         public string Author { get; set; }
         public string Subject { get; set; }
-        public virtual ICollection<Answer>? Answers { get; set; }
+        public virtual ICollection<AnswerDTOResponse>? Answers { get; set; }
 
         static public QuestionDTOResponseA ConvertToResponse(Question source)
         {
@@ -30,7 +31,7 @@ namespace project_cursed.Models
                 Text = source.Text,
                 Author = source.Author,
                 Subject = source.Subject,
-                Answers = source.Answers
+                Answers = source.Answers.Select(a => AnswerDTOResponse.ConvertToResponse(a)).ToList()
             };
 
         }
@@ -58,11 +59,12 @@ namespace project_cursed.Models
     [DisplayName("Question.PostWA")]
     public class QuestionDTORequestA
     {
+        [System.Text.Json.Serialization.JsonIgnore]
         public int Id { get; set; }
         public string Text { get; set; }
         public string Author { get; set; }
         public string Subject { get; set; }
-        public virtual ICollection<Answer>? Answers { get; set; }
+        public virtual ICollection<AnswerDTORequest>? Answers { get; set; }
 
         static public Question ConvertFromRequest(QuestionDTORequestA source)
         {
@@ -72,7 +74,7 @@ namespace project_cursed.Models
                 Text = source.Text,
                 Author = source.Author,
                 Subject = source.Subject,
-                Answers = source.Answers
+                Answers = source.Answers.Select(a => AnswerDTORequest.ConvertFromRequest(a)).ToList()
             };
             return temp;
         }
@@ -80,6 +82,7 @@ namespace project_cursed.Models
     [DisplayName("Question.PostWOA")]
     public class QuestionDTORequest
     {
+        [System.Text.Json.Serialization.JsonIgnore]
         public int Id { get; set; }
         public string Text { get; set; }
         public string Author { get; set; }

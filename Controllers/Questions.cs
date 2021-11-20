@@ -36,6 +36,9 @@ namespace project_cursed
 
             var questions = await _context.Questions.ToListAsync();
             var questionsDTOList = new List<QuestionDTOResponseA>();
+            if (questions == null)
+                return NotFound();
+
             foreach (Question question in questions)
             {
                 question.Answers = await _context.Answers.Where(a => a.QuestionId == question.Id).ToListAsync();
@@ -47,23 +50,24 @@ namespace project_cursed
 
         // GET: api/Question/5
         [HttpGet("questions/{id}")]
-        public async Task<ActionResult<Question>> GetQuestion(int id)
+        public async Task<ActionResult<QuestionDTOResponse>> GetQuestion(int id)
         {
             var question = await _context.Questions.FindAsync(id);
 
             if (question == null)
-            {
                 return NotFound();
-            }
 
-            return question;
+
+            return QuestionDTOResponse.ConvertToResponse(question);
         }
 
         // PUT: api/Question/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("questions/{id}")]
-        public async Task<IActionResult> PutQuestion(int id, Question question)
+        public async Task<IActionResult> PutQuestion(int id, QuestionDTORequest questionRequest)
         {
+            var question = QuestionDTORequest.ConvertFromRequest(questionRequest);
+
             if (id != question.Id)
             {
                 return BadRequest();
@@ -94,27 +98,27 @@ namespace project_cursed
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [Route("questions")]
         [HttpPost]
-        public async Task<ActionResult<QuestionDTORequest>> PostQuestion(Question question)
+        public async Task<ActionResult<QuestionDTORequest>> PostQuestion(QuestionDTORequest question)
         {
-            _context.Questions.Add(question);
+            _context.Questions.Add(QuestionDTORequest.ConvertFromRequest(question));
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetQuestion", new { id = question.Id }, question);
         }
+
         [Route("questions/answers")]
         [HttpPost]
-        public async Task<ActionResult<Question>> PostQuestionWithAnswer(FullQuestion question)
+        public async Task<ActionResult<QuestionDTOResponse>> PostQuestionWithAnswer(QuestionDTORequestA questionRequest)
         {
-            _context.Questions.Add(question.Question);
-            await _context.SaveChangesAsync();
+            var question = QuestionDTORequestA.ConvertFromRequest(questionRequest);
+            _context.Questions.Add(question);
             foreach (Answer answer in question.Answers)
             {
-                answer.QuestionId = question.Question.Id;
-                _context.Answers.Add(answer);
+                answer.Question = question;
             }
+            _context.Answers.AddRange(question.Answers);
             await _context.SaveChangesAsync();
-            return Ok(question);
-            //CreatedAtAction("GetQuestion", new { id = question.Id }, question);
+            return CreatedAtAction("GetQuestion", new { id = question.Id }, question);
         }
 
         [HttpDelete("questions/{id}")]
@@ -135,6 +139,13 @@ namespace project_cursed
         private bool QuestionExists(int id)
         {
             return _context.Questions.Any(e => e.Id == id);
+        }
+
+        [Route("test")]
+        [HttpPost]
+        public async Task<ActionResult<AnswerDTOResponse>> TEST(AnswerDTORequest questionRequest)
+        {
+            return new AnswerDTOResponse();
         }
     }
 }
