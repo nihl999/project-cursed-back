@@ -19,7 +19,7 @@ namespace project_cursed
         {
             _context = context;
         }
-
+        #region Questions
         [Route("questions")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<QuestionDTOResponse>>> GetQuestions()
@@ -98,9 +98,10 @@ namespace project_cursed
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [Route("questions")]
         [HttpPost]
-        public async Task<ActionResult<QuestionDTORequest>> PostQuestion(QuestionDTORequest question)
+        public async Task<ActionResult<QuestionDTORequest>> PostQuestion(QuestionDTORequest questionRequest)
         {
-            _context.Questions.Add(QuestionDTORequest.ConvertFromRequest(question));
+            var question = QuestionDTORequest.ConvertFromRequest(questionRequest);
+            _context.Questions.Add(question);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetQuestion", new { id = question.Id }, question);
@@ -140,12 +141,87 @@ namespace project_cursed
         {
             return _context.Questions.Any(e => e.Id == id);
         }
-
-        [Route("test")]
-        [HttpPost]
-        public async Task<ActionResult<AnswerDTOResponse>> TEST(AnswerDTORequest questionRequest)
+        #endregion
+        #region Answers
+        [Route("answers")]
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<AnswerDTOResponse>>> GetAnswers()
         {
-            return new AnswerDTOResponse();
+            var answers = await _context.Answers.ToListAsync();
+
+            return Ok(answers.Select(answer => AnswerDTOResponse.ConvertToResponse(answer)));
         }
+
+        [HttpGet("answers/{id}")]
+        public async Task<ActionResult<AnswerDTOResponse>> GetAnswer(int id)
+        {
+            var answer = await _context.Answers.FindAsync(id);
+
+            if (answer == null)
+                return NotFound();
+
+
+            return AnswerDTOResponse.ConvertToResponse(answer);
+        }
+
+        [Route("answers")]
+        [HttpPost]
+        public async Task<ActionResult<AnswerDTOResponse>> PostAnswer(AnswerDTORequest answerRequest)
+        {
+            var answer = AnswerDTORequest.ConvertFromRequest(answerRequest);
+            if (!QuestionExists(answer.QuestionId))
+                return NotFound($"Question ID {answer.QuestionId} doesn't exist");
+            _context.Answers.Add(answer);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetAnswer", new { id = answer.Id }, answer);
+        }
+        [HttpPut("answers/{id}")]
+        public async Task<IActionResult> PutAnswer(int id, AnswerDTORequest answerRequest)
+        {
+            var answer = AnswerDTORequest.ConvertFromRequest(answerRequest);
+
+            _context.Entry(answer).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!AnswerExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        [HttpDelete("answers/{id}")]
+        public async Task<IActionResult> DeleteAnswer(int id)
+        {
+            var answer = await _context.Answers.FindAsync(id);
+            if (answer == null)
+            {
+                return NotFound();
+            }
+
+            _context.Answers.Remove(answer);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+
+        private bool AnswerExists(int id)
+        {
+            return _context.Answers.Any(e => e.Id == id);
+        }
+        #endregion
     }
 }
